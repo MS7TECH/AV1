@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendamento | Rivi Silva Esmalteria</title>
+    <link rel="stylesheet" href="style.css"> 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg-primary: #FFFFFF; --text-main: #18181b; }
+        .dark-mode { --bg-primary: #121212; --text-main: #f4f4f5; }
+        
+        body { background-color: var(--bg-primary); color: var(--text-main); font-family: 'Montserrat', sans-serif; transition: 0.3s; }
+        .gold-text { color: #D4AF37; }
+        .gold-bg { background: linear-gradient(135deg, #D4AF37 0%, #F5E6A3 100%); }
+        .clean-card { background-color: rgba(253, 253, 253, 0.1); border: 1px solid rgba(212, 175, 55, 0.15); backdrop-filter: blur(10px); }
+        
+        /* Responsividade (Requisito: 13) */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .day-box { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; border: 1px solid #eee; font-size: 0.85rem; font-weight: 600; }
+        .day-free { background: #f0fdf4; color: #166534; } 
+        .day-selected { background: #D4AF37 !important; color: white !important; }
+        
+        .perfil-img { object-fit: cover; object-position: top; border-radius: 1.5rem; }
+    </style>
+</head>
+<body class="p-4 md:p-8 flex flex-col items-center min-h-screen">
+
+    <header class="mb-8 flex flex-col items-center gap-2 text-center">
+        <img src="logo.png" alt="Logotipo Rivi Silva Esmalteria em tons dourados" class="h-24 md:h-32 object-contain">
+        <p class="text-[10px] gold-text font-bold uppercase tracking-[0.4em] mb-2">Design de Luxo</p>
+        
+        <button onclick="toggleDarkMode()" class="p-2 rounded-full border border-zinc-200 hover:bg-zinc-100 transition-all">
+            <i data-lucide="moon" id="theme-icon" class="text-[#D4AF37]"></i>
+        </button>
+    </header>
+
+    <main class="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        
+        <section class="flex flex-col lg:flex-row gap-6 items-center lg:items-start lg:pr-10">
+            <img src="foto_perfil.jpg" alt="Foto da profissional Rivi Silva atendendo cliente" class="perfil-img w-full lg:w-1/2">
+            <div class="flex flex-col gap-6 mt-4 lg:mt-20">
+                <h2 class="text-4xl md:text-5xl font-light leading-tight text-center lg:text-left">
+                    Seu momento de brilhar começa aqui! <span class="font-semibold gold-text"> 💅</span>
+                </h2>
+                <p class="text-zinc-600 text-lg italic border-l-2 border-[#D4AF37] pl-4">"Unhas feitas, auto-estima renovada."</p>
+            </div>
+        </section>
+
+        <section class="w-full clean-card p-6 md:p-10 rounded-3xl space-y-6">
+            <h3 class="text-xl font-semibold gold-text text-center uppercase tracking-widest mb-6">Solicitar Agendamento</h3>
+
+            <form id="agendamentoForm" class="space-y-4">
+                <div class="relative">
+                    <i data-lucide="user" class="absolute left-3 top-4 text-[#D4AF37] w-4 h-4"></i>
+                    <input id="nome" type="text" placeholder="Seu Nome Completo" required class="w-full p-4 pl-10 rounded-xl uppercase text-xs font-bold bg-zinc-50 border border-zinc-200 outline-none focus:border-[#D4AF37]">
+                </div>
+                
+                <div class="relative">
+                    <i data-lucide="smartphone" class="absolute left-3 top-4 text-[#D4AF37] w-4 h-4"></i>
+                    <input id="whatsapp_input" type="tel" maxlength="15" oninput="this.value = phoneMask(this.value)" placeholder="(71) 00000-0000" required class="w-full p-4 pl-10 rounded-xl text-xs font-bold bg-zinc-50 border border-zinc-200 outline-none focus:border-[#D4AF37]">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold text-zinc-400 uppercase mb-2">Serviços</label>
+                    <div id="listaServicos" class="grid grid-cols-1 gap-1 max-h-40 overflow-y-auto border border-zinc-100 rounded-xl p-2 bg-white text-[10px]"></div>
+                </div>
+
+                <div class="pt-4 border-t border-zinc-100">
+                    <div class="flex items-center justify-between mb-4 px-2">
+                        <button type="button" onclick="mudarMes(-1)" class="gold-text"><i data-lucide="chevron-left"></i></button>
+                        <span id="mesAnoAtual" class="text-[10px] font-bold uppercase">CARREGANDO...</span>
+                        <button type="button" onclick="mudarMes(1)" class="gold-text"><i data-lucide="chevron-right"></i></button>
+                    </div>
+                    <div id="calendarDays" class="calendar-grid"></div>
+                </div>
+
+                <div id="section-horarios" class="hidden space-y-4 pt-4 border-t border-zinc-100">
+                    <div id="time-slots" class="grid grid-cols-3 gap-2"></div>
+                </div>
+
+                <div class="p-4 bg-zinc-900 rounded-xl flex justify-between items-center text-white">
+                    <span class="text-zinc-400 font-bold text-xs uppercase">Total:</span>
+                    <span id="totalDisplay" class="text-2xl font-bold gold-text">R$ 0,00</span>
+                </div>
+
+                <button type="submit" class="w-full bg-[#25D366] text-white font-black py-5 rounded-xl uppercase text-[11px] tracking-widest flex items-center justify-center gap-2">
+                    <i data-lucide="check-circle" class="w-5 h-5"></i> Confirmar Agendamento 💅
+                </button>
+            </form>
+        </section>
+    </main>
+
+    <footer class="mt-auto py-8 text-center text-zinc-400 text-[10px] uppercase tracking-widest">
+        © 2026 Rivi Silva Esmalteria - CNPJ: 00.000.000/0001-00
+    </footer>
+
+    <script>
+        // Função de Acessibilidade: Modo Escuro (Requisito: 21)
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            const icon = document.getElementById('theme-icon');
+            if(document.body.classList.contains('dark-mode')) {
+                lucide.createIcons({attrs: {'data-lucide': 'sun'}});
+            } else {
+                lucide.createIcons({attrs: {'data-lucide': 'moon'}});
+            }
+        }
+
+        // Validação de Dados - 5 Validações (Requisito: 18, 19)
+        document.getElementById('agendamentoForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const nome = document.getElementById('nome').value.trim();
+            const tel = document.getElementById('whatsapp_input').value;
+            const svs = document.querySelectorAll('input[type="checkbox"]:checked');
+            
+            // Validação 1: Nome vazio ou curto
+            if(nome.length < 3) return alert("Por favor, insira seu nome completo.");
+            // Validação 2: Formato de Telefone (DDD + 9 dígitos)
+            if(tel.length < 15) return alert("Telefone incompleto.");
+            // Validação 3: Seleção de Serviço
+            if(svs.length === 0) return alert("Selecione ao menos um serviço.");
+            // Validação 4: Data Selecionada
+            if(!dataSelecionada) return alert("Escolha uma data no calendário.");
+            // Validação 5: Horário Selecionado
+            if(!horaSelecionada) return alert("Escolha um horário disponível.");
+
+            finalizarAgendamento();
+        });
+
+        /* --- LOGICA DO SISTEMA (SUPABASE/CALENDARIO) --- */
+        // (Aqui entra o restante das suas funções: init, carregarServicos, atualizarCalendario, etc.)
+        // Mantenha as funções de Supabase que você já tinha no código original.
+    </script>
+</body>
+</html>+
