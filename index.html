@@ -1,139 +1,1027 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-br" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Agende seu horário na Rivi Silva Esmalteria — Design de unhas de luxo em Salvador, BA.">
     <title>Agendamento | Rivi Silva Esmalteria</title>
-    <link rel="stylesheet" href="style.css"> 
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+
     <style>
-        :root { --bg-primary: #FFFFFF; --text-main: #18181b; }
-        .dark-mode { --bg-primary: #121212; --text-main: #f4f4f5; }
-        
-        body { background-color: var(--bg-primary); color: var(--text-main); font-family: 'Montserrat', sans-serif; transition: 0.3s; }
-        .gold-text { color: #D4AF37; }
-        .gold-bg { background: linear-gradient(135deg, #D4AF37 0%, #F5E6A3 100%); }
-        .clean-card { background-color: rgba(253, 253, 253, 0.1); border: 1px solid rgba(212, 175, 55, 0.15); backdrop-filter: blur(10px); }
-        
-        /* Responsividade (Requisito: 13) */
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-        .day-box { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; cursor: pointer; border: 1px solid #eee; font-size: 0.85rem; font-weight: 600; }
-        .day-free { background: #f0fdf4; color: #166534; } 
-        .day-selected { background: #D4AF37 !important; color: white !important; }
-        
-        .perfil-img { object-fit: cover; object-position: top; border-radius: 1.5rem; }
-    </style>
-</head>
-<body class="p-4 md:p-8 flex flex-col items-center min-h-screen">
+        /* === VARIÁVEIS E RESET === */
+        :root {
+            --gold: #D4AF37;
+            --gold-light: #F5E6A3;
+            --bg-light: #FFFFFF;
+            --bg-card: #FDFDFD;
+            --text-primary: #1a1a1a;
+            --text-secondary: #6b7280;
+            --border-gold: rgba(212, 175, 55, 0.25);
+            --shadow-soft: 0 10px 30px -10px rgba(0,0,0,0.08);
+            --radius-card: 1.5rem;
+            --transition: 0.3s ease;
+            --font-main: 'Montserrat', sans-serif;
+        }
 
-    <header class="mb-8 flex flex-col items-center gap-2 text-center">
-        <img src="logo.png" alt="Logotipo Rivi Silva Esmalteria em tons dourados" class="h-24 md:h-32 object-contain">
-        <p class="text-[10px] gold-text font-bold uppercase tracking-[0.4em] mb-2">Design de Luxo</p>
-        
-        <button onclick="toggleDarkMode()" class="p-2 rounded-full border border-zinc-200 hover:bg-zinc-100 transition-all">
-            <i data-lucide="moon" id="theme-icon" class="text-[#D4AF37]"></i>
-        </button>
-    </header>
+        [data-theme="dark"] {
+            --bg-light: #0f0f0f;
+            --bg-card: #1a1a1a;
+            --text-primary: #f5f5f5;
+            --text-secondary: #a1a1aa;
+            --border-gold: rgba(212, 175, 55, 0.3);
+            --shadow-soft: 0 10px 30px -10px rgba(0,0,0,0.5);
+        }
 
-    <main class="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-        
-        <section class="flex flex-col lg:flex-row gap-6 items-center lg:items-start lg:pr-10">
-            <img src="foto_perfil.jpg" alt="Foto da profissional Rivi Silva atendendo cliente" class="perfil-img w-full lg:w-1/2">
-            <div class="flex flex-col gap-6 mt-4 lg:mt-20">
-                <h2 class="text-4xl md:text-5xl font-light leading-tight text-center lg:text-left">
-                    Seu momento de brilhar começa aqui! <span class="font-semibold gold-text"> 💅</span>
-                </h2>
-                <p class="text-zinc-600 text-lg italic border-l-2 border-[#D4AF37] pl-4">"Unhas feitas, auto-estima renovada."</p>
-            </div>
-        </section>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        <section class="w-full clean-card p-6 md:p-10 rounded-3xl space-y-6">
-            <h3 class="text-xl font-semibold gold-text text-center uppercase tracking-widest mb-6">Solicitar Agendamento</h3>
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-light);
+            color: var(--text-primary);
+            background-image:
+                radial-gradient(at 10% 10%, rgba(212,175,55,0.06) 0px, transparent 50%),
+                radial-gradient(at 90% 90%, rgba(212,175,55,0.04) 0px, transparent 50%);
+            min-height: 100vh;
+            transition: background-color var(--transition), color var(--transition);
+        }
 
-            <form id="agendamentoForm" class="space-y-4">
-                <div class="relative">
-                    <i data-lucide="user" class="absolute left-3 top-4 text-[#D4AF37] w-4 h-4"></i>
-                    <input id="nome" type="text" placeholder="Seu Nome Completo" required class="w-full p-4 pl-10 rounded-xl uppercase text-xs font-bold bg-zinc-50 border border-zinc-200 outline-none focus:border-[#D4AF37]">
-                </div>
-                
-                <div class="relative">
-                    <i data-lucide="smartphone" class="absolute left-3 top-4 text-[#D4AF37] w-4 h-4"></i>
-                    <input id="whatsapp_input" type="tel" maxlength="15" oninput="this.value = phoneMask(this.value)" placeholder="(71) 00000-0000" required class="w-full p-4 pl-10 rounded-xl text-xs font-bold bg-zinc-50 border border-zinc-200 outline-none focus:border-[#D4AF37]">
-                </div>
+        /* === LAYOUT === */
+        .page-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem 1rem;
+            min-height: 100vh;
+        }
 
-                <div>
-                    <label class="block text-[10px] font-bold text-zinc-400 uppercase mb-2">Serviços</label>
-                    <div id="listaServicos" class="grid grid-cols-1 gap-1 max-h-40 overflow-y-auto border border-zinc-100 rounded-xl p-2 bg-white text-[10px]"></div>
-                </div>
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            width: 100%;
+            max-width: 1280px;
+            align-items: start;
+        }
 
-                <div class="pt-4 border-t border-zinc-100">
-                    <div class="flex items-center justify-between mb-4 px-2">
-                        <button type="button" onclick="mudarMes(-1)" class="gold-text"><i data-lucide="chevron-left"></i></button>
-                        <span id="mesAnoAtual" class="text-[10px] font-bold uppercase">CARREGANDO...</span>
-                        <button type="button" onclick="mudarMes(1)" class="gold-text"><i data-lucide="chevron-right"></i></button>
-                    </div>
-                    <div id="calendarDays" class="calendar-grid"></div>
-                </div>
+        @media (min-width: 1024px) {
+            .main-grid { grid-template-columns: 1fr 1fr; }
+        }
 
-                <div id="section-horarios" class="hidden space-y-4 pt-4 border-t border-zinc-100">
-                    <div id="time-slots" class="grid grid-cols-3 gap-2"></div>
-                </div>
+        /* === HEADER === */
+        .site-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
 
-                <div class="p-4 bg-zinc-900 rounded-xl flex justify-between items-center text-white">
-                    <span class="text-zinc-400 font-bold text-xs uppercase">Total:</span>
-                    <span id="totalDisplay" class="text-2xl font-bold gold-text">R$ 0,00</span>
-                </div>
+        .site-header img {
+            height: 7rem;
+            object-fit: contain;
+            transition: transform var(--transition);
+        }
 
-                <button type="submit" class="w-full bg-[#25D366] text-white font-black py-5 rounded-xl uppercase text-[11px] tracking-widest flex items-center justify-center gap-2">
-                    <i data-lucide="check-circle" class="w-5 h-5"></i> Confirmar Agendamento 💅
-                </button>
-            </form>
-        </section>
-    </main>
+        .site-header img:hover { transform: scale(1.04); }
 
-    <footer class="mt-auto py-8 text-center text-zinc-400 text-[10px] uppercase tracking-widest">
-        © 2026 Rivi Silva Esmalteria - CNPJ: 00.000.000/0001-00
-    </footer>
+        .header-tagline {
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--gold);
+            letter-spacing: 0.4em;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
 
-    <script>
-        // Função de Acessibilidade: Modo Escuro (Requisito: 21)
-        function toggleDarkMode() {
-            document.body.classList.toggle('dark-mode');
-            const icon = document.getElementById('theme-icon');
-            if(document.body.classList.contains('dark-mode')) {
-                lucide.createIcons({attrs: {'data-lucide': 'sun'}});
-            } else {
-                lucide.createIcons({attrs: {'data-lucide': 'moon'}});
+        /* === NAV SOCIAL === */
+        .social-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            justify-content: center;
+            list-style: none;
+            padding: 0;
+        }
+
+        .social-links a {
+            color: var(--gold);
+            display: flex;
+            align-items: center;
+            transition: transform var(--transition), filter var(--transition);
+        }
+
+        .social-links a:hover { transform: scale(1.3); filter: brightness(1.2); }
+
+        /* === PERFIL === */
+        .profile-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            align-items: center;
+            animation: fadeInUp 0.5s ease 0.1s both;
+        }
+
+        @media (min-width: 1024px) {
+            .profile-panel { flex-direction: row; align-items: flex-start; padding-right: 2.5rem; }
+        }
+
+        .profile-img {
+            width: 100%;
+            max-width: 280px;
+            border-radius: var(--radius-card);
+            object-fit: cover;
+            object-position: top;
+            mask-image: linear-gradient(to right, black 70%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to right, black 70%, transparent 100%);
+        }
+
+        @media (max-width: 1023px) {
+            .profile-img {
+                height: 300px;
+                mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+                -webkit-mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
             }
         }
 
-        // Validação de Dados - 5 Validações (Requisito: 18, 19)
-        document.getElementById('agendamentoForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const nome = document.getElementById('nome').value.trim();
-            const tel = document.getElementById('whatsapp_input').value;
-            const svs = document.querySelectorAll('input[type="checkbox"]:checked');
-            
-            // Validação 1: Nome vazio ou curto
-            if(nome.length < 3) return alert("Por favor, insira seu nome completo.");
-            // Validação 2: Formato de Telefone (DDD + 9 dígitos)
-            if(tel.length < 15) return alert("Telefone incompleto.");
-            // Validação 3: Seleção de Serviço
-            if(svs.length === 0) return alert("Selecione ao menos um serviço.");
-            // Validação 4: Data Selecionada
-            if(!dataSelecionada) return alert("Escolha uma data no calendário.");
-            // Validação 5: Horário Selecionado
-            if(!horaSelecionada) return alert("Escolha um horário disponível.");
+        .profile-text { display: flex; flex-direction: column; gap: 1.25rem; }
 
-            finalizarAgendamento();
-        });
+        @media (min-width: 1024px) { .profile-text { margin-top: 5rem; } }
 
-        /* --- LOGICA DO SISTEMA (SUPABASE/CALENDARIO) --- */
-        // (Aqui entra o restante das suas funções: init, carregarServicos, atualizarCalendario, etc.)
-        // Mantenha as funções de Supabase que você já tinha no código original.
-    </script>
+        .profile-heading {
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 300;
+            color: var(--text-primary);
+            line-height: 1.2;
+            text-align: center;
+        }
+
+        @media (min-width: 1024px) { .profile-heading { text-align: left; } }
+
+        .profile-heading strong { font-weight: 700; color: var(--gold); }
+
+        .profile-quote {
+            font-size: 1rem;
+            font-style: italic;
+            color: var(--text-secondary);
+            border-left: 3px solid var(--gold);
+            padding-left: 1rem;
+            line-height: 1.6;
+        }
+
+        /* === CARD FORMULÁRIO === */
+        .form-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-gold);
+            box-shadow: var(--shadow-soft);
+            border-radius: var(--radius-card);
+            padding: 2.5rem;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            transition: background-color var(--transition);
+            animation: fadeInUp 0.5s ease forwards;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .form-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--gold);
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.25em;
+        }
+
+        /* === INPUTS === */
+        .input-group { position: relative; }
+
+        .input-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gold);
+            width: 1.1rem;
+            height: 1.1rem;
+            pointer-events: none;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 1rem 1rem 1rem 2.75rem;
+            border: 1px solid var(--border-gold);
+            border-radius: 0.75rem;
+            background-color: var(--bg-light);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            transition: border-color var(--transition), box-shadow var(--transition), background-color var(--transition);
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        .form-input::placeholder { text-transform: none; font-weight: 400; color: var(--text-secondary); }
+        .form-input:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(212,175,55,0.2); }
+        .form-input.input-error { border-color: #ef4444; box-shadow: 0 0 0 2px rgba(239,68,68,0.15); }
+
+        .form-input-textarea {
+            width: 100%;
+            padding: 0.85rem 1rem 0.85rem 2.75rem;
+            border: 1px solid var(--border-gold);
+            border-radius: 0.75rem;
+            background-color: var(--bg-light);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            font-size: 0.75rem;
+            resize: vertical;
+            min-height: 5rem;
+            outline: none;
+            transition: border-color var(--transition), box-shadow var(--transition), background-color var(--transition);
+        }
+
+        .form-input-textarea:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(212,175,55,0.2); }
+        .form-input-textarea.input-error { border-color: #ef4444; }
+
+        .form-select {
+            width: 100%;
+            padding: 1rem 1rem 1rem 2.75rem;
+            border: 1px solid var(--border-gold);
+            border-radius: 0.75rem;
+            background-color: var(--bg-light);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            font-size: 0.75rem;
+            font-weight: 700;
+            appearance: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+            outline: none;
+            transition: border-color var(--transition), box-shadow var(--transition), background-color var(--transition);
+        }
+
+        .form-select:focus { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(212,175,55,0.2); }
+
+        .error-msg {
+            font-size: 0.65rem;
+            color: #ef4444;
+            font-weight: 600;
+            margin-top: 0.3rem;
+            padding-left: 0.5rem;
+            display: none;
+        }
+
+        .error-msg.visible { display: block; }
+
+        /* === SERVIÇOS === */
+        .section-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.5rem;
+        }
+
+        .services-list {
+            max-height: 10rem;
+            overflow-y: auto;
+            border: 1px solid rgba(212,175,55,0.1);
+            border-radius: 0.75rem;
+            padding: 0.5rem;
+            background-color: var(--bg-light);
+            scrollbar-width: thin;
+            scrollbar-color: var(--gold) transparent;
+        }
+
+        .services-list::-webkit-scrollbar { width: 4px; }
+        .services-list::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 4px; }
+
+        .service-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            border-bottom: 1px solid rgba(0,0,0,0.04);
+            cursor: pointer;
+            border-radius: 0.5rem;
+            transition: background-color var(--transition);
+        }
+
+        .service-item:last-child { border-bottom: none; }
+        .service-item:hover { background-color: rgba(212,175,55,0.05); }
+        .service-item input[type="checkbox"] { accent-color: var(--gold); width: 1rem; height: 1rem; margin-right: 0.75rem; cursor: pointer; }
+        .service-name { font-size: 0.65rem; font-weight: 700; color: var(--text-primary); text-transform: uppercase; }
+        .service-price { font-size: 0.7rem; font-weight: 700; color: var(--text-secondary); white-space: nowrap; }
+
+        .total-box {
+            padding: 1rem 1.25rem;
+            background-color: #18181b;
+            border-radius: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1rem;
+        }
+
+        .total-label { font-size: 0.7rem; font-weight: 700; color: #71717a; text-transform: uppercase; }
+        .total-value { font-size: 1.5rem; font-weight: 700; color: var(--gold); }
+
+        /* === CALENDÁRIO === */
+        .calendar-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .cal-nav-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--gold);
+            padding: 0.25rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color var(--transition);
+        }
+
+        .cal-nav-btn:hover { background-color: rgba(212,175,55,0.1); }
+
+        .cal-month-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+
+        .day-box {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 1px solid #e5e7eb;
+            font-size: 0.8rem;
+            font-weight: 600;
+            font-family: var(--font-main);
+            transition: transform var(--transition), box-shadow var(--transition);
+        }
+
+        .day-box:not(.day-busy):hover { transform: scale(1.1); box-shadow: 0 4px 12px rgba(212,175,55,0.3); }
+        .day-free { background-color: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+        .day-busy { background-color: #fef2f2 !important; color: #991b1b !important; border-color: #fecaca !important; cursor: not-allowed; opacity: 0.5; }
+        .day-selected { background-color: var(--gold) !important; color: #fff !important; border-color: var(--gold) !important; box-shadow: 0 4px 12px rgba(212,175,55,0.4); }
+        .day-special { border: 2px solid var(--gold) !important; position: relative; }
+        .day-special::after { content: ''; position: absolute; top: 2px; right: 2px; width: 5px; height: 5px; background: var(--gold); border-radius: 50%; }
+
+        /* === HORÁRIOS === */
+        .section-horarios { padding-top: 1.25rem; border-top: 1px solid rgba(212,175,55,0.1); }
+        .section-horarios.hidden { display: none; }
+        .time-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; padding-bottom: 1rem; }
+
+        .time-slot {
+            padding: 0.6rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.625rem;
+            text-align: center;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            font-family: var(--font-main);
+            background-color: var(--bg-light);
+            color: var(--text-primary);
+            transition: background-color var(--transition), color var(--transition), border-color var(--transition), transform var(--transition);
+        }
+
+        .time-slot:not(.occupied):hover { border-color: var(--gold); color: var(--gold); transform: scale(1.05); }
+        .time-selected { background-color: var(--gold) !important; color: #fff !important; border-color: var(--gold) !important; }
+        .occupied { background-color: #f3f4f6; color: #9ca3af; cursor: not-allowed; text-decoration: line-through; pointer-events: none; }
+
+        
+        .pix-box {
+            padding: 1.25rem;
+            background-color: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .pix-title { font-size: 0.7rem; font-weight: 700; color: #92400e; text-transform: uppercase; text-align: center; line-height: 1.6; }
+        .pix-title span { display: block; font-size: 1.25rem; font-weight: 900; }
+        .pix-key-label { font-size: 0.6rem; color: #b45309; font-weight: 700; text-transform: uppercase; text-align: center; }
+
+        .pix-key-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background-color: #fff;
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            border: 1px solid #fde68a;
+            width: 100%;
+        }
+
+        .pix-input { background: transparent; border: none; outline: none; font-size: 0.75rem; font-weight: 700; color: #1a1a1a; text-align: center; width: 100%; font-family: var(--font-main); cursor: default; }
+
+        .btn-copy {
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+            color: #1a1a1a;
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-family: var(--font-main);
+            text-transform: uppercase;
+            white-space: nowrap;
+            transition: transform var(--transition), filter var(--transition);
+        }
+
+        .btn-copy:hover { filter: brightness(1.08); }
+        .btn-copy:active { transform: scale(0.95); }
+
+        
+        .btn-whatsapp {
+            width: 100%;
+            background-color: #25D366;
+            color: #fff;
+            font-family: var(--font-main);
+            font-size: 0.7rem;
+            font-weight: 900;
+            padding: 1.25rem 1rem;
+            border: none;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 20px rgba(37,211,102,0.35);
+            transition: transform var(--transition), box-shadow var(--transition);
+        }
+
+        .btn-whatsapp:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(37,211,102,0.5); }
+        .btn-whatsapp:active { transform: scale(0.97); }
+
+        /* === BOTÃO TEMA === */
+        .btn-theme {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            width: 2.75rem;
+            height: 2.75rem;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--gold-light) 100%);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 16px rgba(212,175,55,0.5);
+            transition: transform var(--transition), box-shadow var(--transition);
+            z-index: 100;
+        }
+
+        .btn-theme:hover { transform: scale(1.1); box-shadow: 0 6px 24px rgba(212,175,55,0.7); }
+        .btn-theme svg { width: 1.25rem; height: 1.25rem; color: #1a1a1a; }
+
+        /* === FOOTER === */
+        .site-footer { margin-top: 3rem; text-align: center; font-size: 0.65rem; color: var(--text-secondary); padding-bottom: 1rem; }
+
+        /* === DIVISOR === */
+        .divider { border: none; border-top: 1px solid var(--border-gold); margin: 0; }
+    </style>
+</head>
+
+<body>
+<div class="page-wrapper">
+
+    <!-- ══════════════════════
+         HEADER (tag semântica)
+         ══════════════════════ -->
+    <header class="site-header" role="banner">
+        <img src="logo.png" alt="Logo Rivi Silva Esmalteria — Design de unhas de luxo" height="128">
+        <p class="header-tagline">Design de Luxo</p>
+
+        <!-- NAV (tag semântica) -->
+        <nav aria-label="Redes sociais e contato">
+            <ul class="social-links">
+                <li>
+                    <a href="https://www.instagram.com/esmalteria_rivi?igsh=MWx2dzNxenRmYzF0bQ=="
+                       target="_blank" rel="noopener noreferrer"
+                       aria-label="Instagram da Rivi Silva Esmalteria">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                             viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                        </svg>
+                    </a>
+                </li>
+                <li>
+                    <a href="https://api.whatsapp.com/send?phone=5571992447638"
+                       target="_blank" rel="noopener noreferrer"
+                       aria-label="WhatsApp da Rivi Silva Esmalteria">
+                        <i data-lucide="smartphone" aria-hidden="true"></i>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" aria-label="Localização no mapa">
+                        <i data-lucide="map-pin" aria-hidden="true"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </header>
+
+    
+    <main class="main-grid" id="main-content">
+
+        <!-- ASIDE — perfil (tag semântica) -->
+        <aside class="profile-panel" aria-label="Apresentação da profissional">
+            <img src="foto_perfil.jpg"
+                 alt="Rivi Silva, manicure especialista em design de unhas de luxo em Salvador"
+                 class="profile-img">
+            <div class="profile-text">
+                <h1 class="profile-heading">
+                    Seu momento de brilhar começa aqui! <strong>💅</strong>
+                </h1>
+                <!-- BLOCKQUOTE (tag semântica) -->
+                <blockquote class="profile-quote" cite="https://www.instagram.com/esmalteria_rivi">
+                    "Unhas feitas, auto-estima renovada."
+                </blockquote>
+            </div>
+        </aside>
+
+        <!-- SECTION — formulário (tag semântica) -->
+        <section aria-labelledby="form-title">
+            <div class="form-card">
+                <h2 class="form-title" id="form-title">Solicitar Agendamento</h2>
+
+                <!-- FIELDSET + LEGEND (tags semânticas) -->
+                <fieldset style="border:none;padding:0;margin:0;">
+                    <legend style="position:absolute;width:1px;height:1px;overflow:hidden;">Dados pessoais</legend>
+                    <div style="display:flex;flex-direction:column;gap:1rem;">
+
+                        <!-- Campo 1: Nome -->
+                        <div class="input-group">
+                            <i data-lucide="user" class="input-icon" aria-hidden="true"></i>
+                            <label for="nome" style="position:absolute;width:1px;height:1px;overflow:hidden;">Nome completo</label>
+                            <input id="nome" type="text" placeholder="Seu Nome Completo"
+                                   class="form-input" autocomplete="name"
+                                   aria-required="true" aria-describedby="erro-nome">
+                            <span id="erro-nome" class="error-msg" role="alert" aria-live="polite"></span>
+                        </div>
+
+                        <!-- Campo 2: WhatsApp -->
+                        <div class="input-group">
+                            <i data-lucide="smartphone" class="input-icon" aria-hidden="true"></i>
+                            <label for="whatsapp_input" style="position:absolute;width:1px;height:1px;overflow:hidden;">WhatsApp</label>
+                            <input id="whatsapp_input" type="tel" maxlength="15"
+                                   placeholder="(71) 00000-0000" class="form-input"
+                                   autocomplete="tel" aria-required="true" aria-describedby="erro-fone"
+                                   oninput="this.value = phoneMask(this.value)">
+                            <span id="erro-fone" class="error-msg" role="alert" aria-live="polite"></span>
+                        </div>
+
+                        <!-- Campo 3: E-mail -->
+                        <div class="input-group">
+                            <i data-lucide="mail" class="input-icon" aria-hidden="true"></i>
+                            <label for="email_input" style="position:absolute;width:1px;height:1px;overflow:hidden;">E-mail</label>
+                            <input id="email_input" type="email" placeholder="Seu E-mail"
+                                   class="form-input" autocomplete="email"
+                                   aria-required="true" aria-describedby="erro-email">
+                            <span id="erro-email" class="error-msg" role="alert" aria-live="polite"></span>
+                        </div>
+
+                        <!-- Campo 4: Como conheceu -->
+                        <div class="input-group">
+                            <i data-lucide="search" class="input-icon" aria-hidden="true"></i>
+                            <label for="como_conheceu" style="position:absolute;width:1px;height:1px;overflow:hidden;">Como conheceu</label>
+                            <select id="como_conheceu" class="form-select"
+                                    aria-label="Como conheceu a Rivi Silva Esmalteria">
+                                <option value="" disabled selected>Como nos conheceu?</option>
+                                <option value="Instagram">Instagram</option>
+                                <option value="Indicação">Indicação de amiga/o</option>
+                                <option value="WhatsApp">WhatsApp</option>
+                                <option value="Google">Google</option>
+                                <option value="Outro">Outro</option>
+                            </select>
+                        </div>
+
+                        <!-- Campo 5: Observação -->
+                        <div class="input-group">
+                            <i data-lucide="message-circle" class="input-icon" aria-hidden="true"
+                               style="top:1.1rem;transform:none;"></i>
+                            <label for="observacao_input" style="position:absolute;width:1px;height:1px;overflow:hidden;">Observações</label>
+                            <textarea id="observacao_input"
+                                      placeholder="Observações (alergia a produtos, referências, etc.)"
+                                      class="form-input-textarea" maxlength="300"
+                                      aria-describedby="erro-obs"></textarea>
+                            <span id="erro-obs" class="error-msg" role="alert" aria-live="polite"></span>
+                        </div>
+
+                    </div>
+                </fieldset>
+
+                <hr class="divider">
+
+                <!-- Serviços -->
+                <section aria-labelledby="label-servicos">
+                    <p class="section-label" id="label-servicos">
+                        <i data-lucide="sparkles" aria-hidden="true" style="width:0.85rem;height:0.85rem;color:var(--gold);"></i>
+                        Serviços
+                    </p>
+                    <div id="listaServicos" class="services-list" role="group" aria-labelledby="label-servicos"></div>
+                    <span id="erro-servicos" class="error-msg" role="alert" aria-live="polite"></span>
+                    <div class="total-box" aria-live="polite">
+                        <span class="total-label">Total:</span>
+                        <span id="totalDisplay" class="total-value">R$ 0,00</span>
+                    </div>
+                </section>
+
+                <hr class="divider">
+
+                <!-- Calendário -->
+                <section aria-labelledby="label-calendario">
+                    <div class="calendar-nav">
+                        <button class="cal-nav-btn" onclick="mudarMes(-1)" aria-label="Mês anterior">
+                            <i data-lucide="chevron-left" style="width:1.5rem;height:1.5rem;" aria-hidden="true"></i>
+                        </button>
+                        <p class="cal-month-label" id="label-calendario" aria-live="polite">
+                            <i data-lucide="calendar" aria-hidden="true" style="width:1rem;height:1rem;color:var(--gold);"></i>
+                            <span id="mesAnoAtual">CARREGANDO...</span>
+                        </p>
+                        <button class="cal-nav-btn" onclick="mudarMes(1)" aria-label="Próximo mês">
+                            <i data-lucide="chevron-right" style="width:1.5rem;height:1.5rem;" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <div id="calendarDays" class="calendar-grid" role="grid" aria-label="Datas disponíveis"></div>
+                </section>
+
+                <!-- Horários -->
+                <section id="section-horarios" class="section-horarios hidden" aria-labelledby="label-horarios">
+                    <p class="section-label" id="label-horarios" style="justify-content:center;margin-bottom:0.75rem;">
+                        <i data-lucide="clock" aria-hidden="true" style="width:0.85rem;height:0.85rem;color:var(--gold);"></i>
+                        Horários para <strong id="display-date" style="color:var(--gold);">--/--</strong>
+                    </p>
+                    <div id="time-slots" class="time-grid" role="group" aria-label="Horários disponíveis"></div>
+
+                    <!-- PIX -->
+                    <div class="pix-box" aria-label="Pagamento do sinal via PIX">
+                        <p class="pix-title">
+                            Para confirmar o agendamento envie um sinal de
+                            <span>R$ 50,00</span>
+                        </p>
+                        <div style="width:100%;">
+                            <p class="pix-key-label">Chave PIX (Telefone) — Ryan Caique Santana</p>
+                            <div class="pix-key-row">
+                                <i data-lucide="qr-code" aria-hidden="true" style="color:#b45309;width:1rem;height:1rem;flex-shrink:0;"></i>
+                                <input id="pixKey" type="text" value="(71) 99244-7638" readonly
+                                       class="pix-input" aria-label="Chave PIX: (71) 99244-7638">
+                                <button onclick="copyPix()" class="btn-copy" aria-label="Copiar chave PIX">COPIAR</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botão Finalizar -->
+                    <button id="btnAgendar" onclick="finalizarAgendamento()" class="btn-whatsapp"
+                            aria-label="Confirmar agendamento e enviar comprovante via WhatsApp">
+                        <i data-lucide="check-circle" style="width:1.25rem;height:1.25rem;" aria-hidden="true"></i>
+                        Envie o Comprovante Aqui 💅
+                    </button>
+                </section>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER (tag semântica) -->
+    <footer class="site-footer" role="contentinfo">
+        <p>&copy; <span id="ano"></span> Rivi Silva Esmalteria — Todos os direitos reservados.</p>
+    </footer>
+
+</div>
+
+
+<button class="btn-theme" onclick="toggleTheme()"
+        aria-label="Alternar entre modo claro e escuro" title="Alternar tema">
+    <i id="theme-icon" data-lucide="moon" aria-hidden="true"></i>
+</button>
+
+<script>
+    /* === SUPABASE === */
+    const supabaseUrl = 'https://rahubkowehwtvditbhlx.supabase.co';
+    const supabaseKey = 'sb_publishable_wKbs4gYVURdIR6Cafm8qFA_tUZZTIKo';
+    const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+    /* === ESTADO === */
+    let dataSelecionada = null, horaSelecionada = null;
+    let configPadrao = { inicio: '09:00', fim: '18:00', intervalo: 40 };
+    let bloqueios = [], excecoes = {};
+    let mesVisualizado = new Date();
+
+    /* === UTILITÁRIOS === */
+    function phoneMask(v) {
+        v = v.replace(/\D/g, '');
+        if (v.length > 11) v = v.substring(0, 11);
+        v = v.replace(/^(\d{2})(\d)/g, '($1) $2');
+        v = v.replace(/(\d)(\d{4})$/, '$1-$2');
+        return v;
+    }
+
+    function formatMoney(val) { return 'R$ ' + val.toFixed(2).replace('.', ','); }
+
+    function copyPix() {
+        navigator.clipboard.writeText(document.getElementById('pixKey').value)
+            .then(() => alert('Chave PIX copiada! 💅'));
+    }
+
+    /* === VALIDAÇÕES (5 obrigatórias) === */
+
+    // Validação 1: Nome completo (2+ palavras)
+    function validarNome(v) {
+        if (v.trim().length < 3) return 'Digite seu nome completo.';
+        if (v.trim().split(/\s+/).length < 2) return 'Informe nome e sobrenome.';
+        return null;
+    }
+
+    // Validação 2: Telefone (ao menos 10 dígitos)
+    function validarTelefone(v) {
+        if (v.replace(/\D/g, '').length < 10) return 'Telefone inválido.';
+        return null;
+    }
+
+    
+    function validarEmail(v) {
+        if (!v.trim()) return 'Informe seu e-mail.';
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())) return 'E-mail inválido.';
+        return null;
+    }
+
+    
+    function validarServicos() {
+        if (!document.querySelectorAll('input[type="checkbox"]:checked').length)
+            return 'Selecione ao menos um serviço.';
+        return null;
+    }
+
+    // Validação 5: Observação com máximo de 300 caracteres
+    function validarObservacao(v) {
+        if (v.length > 300) return 'Máximo de 300 caracteres.';
+        return null;
+    }
+
+    function mostrarErro(inputId, msgId, mensagem) {
+        const input = document.getElementById(inputId);
+        const msg   = document.getElementById(msgId);
+        if (mensagem) {
+            input?.classList.add('input-error');
+            if (msg) { msg.textContent = mensagem; msg.classList.add('visible'); }
+            return false;
+        }
+        input?.classList.remove('input-error');
+        if (msg) { msg.textContent = ''; msg.classList.remove('visible'); }
+        return true;
+    }
+
+    function validarFormulario() {
+        const v1 = mostrarErro('nome',            'erro-nome',  validarNome(document.getElementById('nome').value));
+        const v2 = mostrarErro('whatsapp_input',  'erro-fone',  validarTelefone(document.getElementById('whatsapp_input').value));
+        const v3 = mostrarErro('email_input',     'erro-email', validarEmail(document.getElementById('email_input').value));
+        const v4 = mostrarErro('observacao_input','erro-obs',   validarObservacao(document.getElementById('observacao_input').value));
+        const erroSvs = validarServicos();
+        const svEl = document.getElementById('erro-servicos');
+        if (erroSvs) { svEl.textContent = erroSvs; svEl.classList.add('visible'); }
+        else         { svEl.textContent = ''; svEl.classList.remove('visible'); }
+        if (!dataSelecionada || !horaSelecionada) { alert('Selecione uma data e um horário.'); return false; }
+        return v1 && v2 && v3 && v4 && !erroSvs;
+    }
+
+    
+    async function carregarServicos() {
+        const { data } = await _supabase.from('servicos').select('*').order('nome');
+        const lista = document.getElementById('listaServicos');
+        if (!lista || !data) return;
+        lista.innerHTML = data.map(s => `
+            <label class="service-item">
+                <div style="display:flex;align-items:center;gap:0.5rem;">
+                    <input type="checkbox" value="${s.nome}" data-price="${s.preco}"
+                           onchange="calcTotal()" aria-label="Selecionar ${s.nome}">
+                    <span class="service-name">${s.nome}</span>
+                </div>
+                <span class="service-price">R$ ${s.preco.toFixed(2).replace('.', ',')}</span>
+            </label>
+        `).join('');
+    }
+
+    function calcTotal() {
+        let total = 0;
+        document.querySelectorAll('input[type="checkbox"]:checked').forEach(c => total += parseFloat(c.dataset.price));
+        document.getElementById('totalDisplay').textContent = formatMoney(total);
+    }
+
+    
+    async function mudarMes(direcao) {
+        mesVisualizado.setMonth(mesVisualizado.getMonth() + direcao);
+        document.getElementById('section-horarios').classList.add('hidden');
+        await atualizarCalendario();
+    }
+
+    async function atualizarCalendario() {
+        const container  = document.getElementById('calendarDays');
+        const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+        document.getElementById('mesAnoAtual').textContent = `${meses[mesVisualizado.getMonth()]} ${mesVisualizado.getFullYear()}`;
+
+        const ano = mesVisualizado.getFullYear();
+        const mes = String(mesVisualizado.getMonth() + 1).padStart(2, '0');
+
+        const [resConfig, resBloqueios, resExcecoes, resMeses] = await Promise.all([
+            _supabase.from('agenda_config').select('*').eq('id', 1).maybeSingle(),
+            _supabase.from('agenda_bloqueada').select('data_interditada'),
+            _supabase.from('agenda_excecoes').select('*'),
+            _supabase.from('meses_liberados').select('liberado').eq('mes_ano', `${ano}-${mes}`).maybeSingle()
+        ]);
+
+        if (resConfig.data) configPadrao = { inicio: resConfig.data.hora_inicio, fim: resConfig.data.hora_fim, intervalo: resConfig.data.intervalo_minutos };
+        bloqueios = resBloqueios.data ? resBloqueios.data.map(b => b.data_interditada) : [];
+        excecoes  = {};
+        if (resExcecoes.data) resExcecoes.data.forEach(ex => excecoes[ex.data] = { inicio: ex.hora_inicio, fim: ex.hora_fim });
+
+        if (resMeses.data?.liberado !== true) {
+            container.innerHTML = `<div style="grid-column:span 7;display:flex;flex-direction:column;align-items:center;padding:2.5rem 0;opacity:0.6;">
+                <i data-lucide="lock" style="width:2rem;height:2rem;margin-bottom:0.5rem;color:var(--gold);"></i>
+                <p style="font-size:0.65rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;text-align:center;">Agenda fechada para este mês.</p>
+            </div>`;
+        } else {
+            renderCalendar(mesVisualizado);
+        }
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function renderCalendar(dataBase) {
+        const container   = document.getElementById('calendarDays');
+        const primeiroDia = new Date(dataBase.getFullYear(), dataBase.getMonth(), 1).getDay();
+        const ultimoDia   = new Date(dataBase.getFullYear(), dataBase.getMonth() + 1, 0).getDate();
+        const hoje        = new Date(); hoje.setHours(0,0,0,0);
+        container.innerHTML = '';
+
+        for (let i = 0; i < primeiroDia; i++) container.appendChild(document.createElement('div'));
+
+        for (let d = 1; d <= ultimoDia; d++) {
+            const dataStr  = `${dataBase.getFullYear()}-${String(dataBase.getMonth()+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+            const dataLoop = new Date(dataBase.getFullYear(), dataBase.getMonth(), d);
+            const isBlocked = bloqueios.includes(dataStr);
+            const isPassado = dataLoop < hoje;
+
+            const box = document.createElement('div');
+            box.className = `day-box ${isPassado || isBlocked ? 'day-busy' : 'day-free'} ${excecoes[dataStr] && !isBlocked ? 'day-special' : ''}`;
+            box.textContent = d;
+            box.setAttribute('role', 'button');
+            box.setAttribute('aria-label', `Dia ${d}${isBlocked ? ' - bloqueado' : isPassado ? ' - passado' : ' - disponível'}`);
+            if (!isPassado && !isBlocked) box.onclick = () => carregarHorarios(box, dataStr);
+            container.appendChild(box);
+        }
+    }
+
+    
+    async function carregarHorarios(el, data) {
+        document.querySelectorAll('.day-box').forEach(d => d.classList.remove('day-selected'));
+        el.classList.add('day-selected');
+        dataSelecionada = data; horaSelecionada = null;
+        document.getElementById('section-horarios').classList.remove('hidden');
+        document.getElementById('display-date').textContent = data.split('-').reverse().join('/');
+
+        const { data: ocupados } = await _supabase.from('agendamentos').select('horario')
+            .eq('data_atendimento', data).not('status', 'eq', 'Cancelado');
+        const ocupadosList = ocupados?.map(o => o.horario.substring(0, 5)) || [];
+
+        const hI = excecoes[data]?.inicio || configPadrao.inicio;
+        const hF = excecoes[data]?.fim    || configPadrao.fim;
+        const slotsDiv = document.getElementById('time-slots');
+        slotsDiv.innerHTML = '';
+
+        let totalMin = (parseInt(hI.split(':')[0]) * 60) + parseInt(hI.split(':')[1]);
+        const totalFim = (parseInt(hF.split(':')[0]) * 60) + parseInt(hF.split(':')[1]);
+
+        const agora = new Date();
+        const hojeStr = `${agora.getFullYear()}-${String(agora.getMonth()+1).padStart(2,'0')}-${String(agora.getDate()).padStart(2,'0')}`;
+        const horaAtualMin = (agora.getHours() * 60) + agora.getMinutes();
+
+        while (totalMin < totalFim) {
+            const hFormat = `${String(Math.floor(totalMin/60)).padStart(2,'0')}:${String(totalMin%60).padStart(2,'0')}`;
+            const jaPassou  = (data === hojeStr && totalMin <= horaAtualMin);
+            const isOcupado = ocupadosList.includes(hFormat) || jaPassou;
+
+            const btn = document.createElement('div');
+            btn.className = `time-slot ${isOcupado ? 'occupied' : ''}`;
+            btn.textContent = hFormat;
+            btn.setAttribute('role', 'button');
+            btn.setAttribute('aria-label', `${hFormat}${isOcupado ? ' - ocupado' : ' - disponível'}`);
+
+            if (!isOcupado) btn.onclick = () => {
+                document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('time-selected'));
+                btn.classList.add('time-selected');
+                horaSelecionada = hFormat;
+            };
+
+            slotsDiv.appendChild(btn);
+            totalMin += parseInt(configPadrao.intervalo);
+        }
+        if (window.lucide) lucide.createIcons();
+    }
+
+    
+    async function finalizarAgendamento() {
+        if (!validarFormulario()) return;
+
+        const n     = document.getElementById('nome').value.trim();
+        const z     = document.getElementById('whatsapp_input').value;
+        const email = document.getElementById('email_input').value.trim();
+        const obs   = document.getElementById('observacao_input').value.trim();
+        const como  = document.getElementById('como_conheceu').value;
+        const svs   = Array.from(document.querySelectorAll('input[type="checkbox"]:checked')).map(c => c.value);
+        const totalStr = document.getElementById('totalDisplay').textContent;
+
+        const { error } = await _supabase.from('agendamentos').insert([{
+            cliente_nome: n.toUpperCase(), telefone: z, email, observacao: obs,
+            como_conheceu: como, data_atendimento: dataSelecionada,
+            horario: horaSelecionada, servico: svs.join(', '), status: 'Aguardando',
+            valor: parseFloat(totalStr.replace('R$ ', '').replace(',', '.'))
+        }]);
+
+        if (!error) {
+            const msg = `Agendamento Rivi Silva 💅\n\nNome: ${n.toUpperCase()}\nData: ${dataSelecionada.split('-').reverse().join('/')}\nHora: ${horaSelecionada}\nServiços: ${svs.join(', ')}\nTotal: ${totalStr}\n\nsegue o meu comprovante com o sinal para garantir o meu agendamento!`;
+            window.location.href = `https://api.whatsapp.com/send?phone=5571992447638&text=${encodeURIComponent(msg)}`;
+        } else {
+            alert('Erro ao agendar. Tente novamente.');
+        }
+    }
+
+
+    function toggleTheme() {
+        const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+        const icon = document.getElementById('theme-icon');
+        if (icon) { icon.setAttribute('data-lucide', next === 'dark' ? 'sun' : 'moon'); lucide.createIcons(); }
+    }
+
+    function initTheme() {
+        const saved = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', saved);
+        const icon = document.getElementById('theme-icon');
+        if (icon) icon.setAttribute('data-lucide', saved === 'dark' ? 'sun' : 'moon');
+    }
+
+    /* === INIT === */
+    async function init() {
+        initTheme();
+        document.getElementById('ano').textContent = new Date().getFullYear();
+        await carregarServicos();
+        await atualizarCalendario();
+        if (window.lucide) lucide.createIcons();
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+</script>
+
 </body>
-</html>+
+</html>
