@@ -426,7 +426,7 @@
         .time-selected { background-color: var(--gold) !important; color: #fff !important; border-color: var(--gold) !important; }
         .occupied { background-color: #f3f4f6; color: #9ca3af; cursor: not-allowed; text-decoration: line-through; pointer-events: none; }
 
-        
+        /* === PIX === */
         .pix-box {
             padding: 1.25rem;
             background-color: #fffbeb;
@@ -473,7 +473,7 @@
         .btn-copy:hover { filter: brightness(1.08); }
         .btn-copy:active { transform: scale(0.95); }
 
-        
+        /* === BOTÃO WHATSAPP === */
         .btn-whatsapp {
             width: 100%;
             background-color: #25D366;
@@ -570,7 +570,9 @@
         </nav>
     </header>
 
-    
+    <!-- ══════════════════════
+         MAIN (tag semântica)
+         ══════════════════════ -->
     <main class="main-grid" id="main-content">
 
         <!-- ASIDE — perfil (tag semântica) -->
@@ -740,7 +742,7 @@
 
 </div>
 
-
+<!-- Botão modo claro/escuro (acessibilidade) -->
 <button class="btn-theme" onclick="toggleTheme()"
         aria-label="Alternar entre modo claro e escuro" title="Alternar tema">
     <i id="theme-icon" data-lucide="moon" aria-hidden="true"></i>
@@ -789,14 +791,14 @@
         return null;
     }
 
-    
+    // Validação 3: E-mail com formato válido
     function validarEmail(v) {
         if (!v.trim()) return 'Informe seu e-mail.';
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())) return 'E-mail inválido.';
         return null;
     }
 
-    
+    // Validação 4: Ao menos 1 serviço selecionado
     function validarServicos() {
         if (!document.querySelectorAll('input[type="checkbox"]:checked').length)
             return 'Selecione ao menos um serviço.';
@@ -835,7 +837,7 @@
         return v1 && v2 && v3 && v4 && !erroSvs;
     }
 
-    
+    /* === SERVIÇOS === */
     async function carregarServicos() {
         const { data } = await _supabase.from('servicos').select('*').order('nome');
         const lista = document.getElementById('listaServicos');
@@ -858,7 +860,7 @@
         document.getElementById('totalDisplay').textContent = formatMoney(total);
     }
 
-    
+    /* === CALENDÁRIO === */
     async function mudarMes(direcao) {
         mesVisualizado.setMonth(mesVisualizado.getMonth() + direcao);
         document.getElementById('section-horarios').classList.add('hidden');
@@ -921,7 +923,7 @@
         }
     }
 
-    
+    /* === HORÁRIOS === */
     async function carregarHorarios(el, data) {
         document.querySelectorAll('.day-box').forEach(d => d.classList.remove('day-selected'));
         el.classList.add('day-selected');
@@ -968,7 +970,7 @@
         if (window.lucide) lucide.createIcons();
     }
 
-    
+    /* === FINALIZAR === */
     async function finalizarAgendamento() {
         if (!validarFormulario()) return;
 
@@ -995,7 +997,7 @@
         }
     }
 
-
+    /* === MODO CLARO/ESCURO === */
     function toggleTheme() {
         const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
         document.documentElement.setAttribute('data-theme', next);
